@@ -1,6 +1,8 @@
 import { JSDOM } from "jsdom"
-import puppeteer from "puppeteer";
+import puppeteer, { executablePath } from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { DirectoryModel } from "../Models/directory.model.mjs";
+import { SearchModel } from "../Models/search.model.mjs";
 
 const getUrlComponents = async (request, response) => {
     try {
@@ -11,7 +13,19 @@ const getUrlComponents = async (request, response) => {
             })
         }
         const getHtmlWithPuppeteer = async (url) => {
-            const browser = await puppeteer.launch({ headless: "new" });
+            let browser;
+            if(process.env.NODE_ENV === "PROD") {
+                browser = await puppeteer.launch({
+                    args: chromium.args,
+                    defaultViewport: chromium.defaultViewport,
+                    executablePath: await chromium.executablePath(),
+                    headless: chromium.headless,
+                    ignoreHTTPSErrors: true
+                })
+            }
+            if(process.env.NODE_ENV === "DEV") {
+                browser = await puppeteer.launch({ headless: "new", executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });
+            }
             const page = await browser.newPage();
             await page.goto(url, { waitUntil: "domcontentloaded" });
             const html = await page.content();
@@ -99,8 +113,29 @@ const getSearch = async (request, response) => {
             ]
         }
         const results = await DirectoryModel.find(searchQuery).skip(skip).limit(limit)
+        if (results.length > 0) {
+            const exist = await SearchModel.findOne({ query: { $regex: q, $options: "i" } })
+            if (!exist) {
+                await SearchModel.create({ query: q })
+            }
+        }
         const total = await DirectoryModel.countDocuments(searchQuery)
         return response.status(200).send({results, total_results: total, is_previous_available: skip > 0, is_next_available: total > (skip + limit)})
+    } catch (err) {
+        return response.status(500).send({
+            message: err.message || "Error while fetching website. Please try again."
+        })
+    }
+}
+
+const searchSuggestions = async (request, response) => {
+    try {
+        const { q } = request.query;
+        if(!q){
+            return response.status(200).send([])
+        }
+        const results = await SearchModel.find({ query: { $regex: q, $options: "i" } }).sort({ createdAt: -1 }).limit(10)
+        return response.status(200).send(results)
     } catch (err) {
         return response.status(500).send({
             message: err.message || "Error while fetching website. Please try again."
@@ -111,5 +146,6 @@ const getSearch = async (request, response) => {
 export default {
     getUrlComponents,
     addToDirectory,
-    getSearch
+    getSearch,
+    searchSuggestions
 }

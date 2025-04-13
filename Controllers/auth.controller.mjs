@@ -1,4 +1,5 @@
 import { UserModel } from "../Models/user.model.mjs";
+import jwt from "jsonwebtoken"
 
 const auth = async (request, response) => {
     try {
@@ -14,8 +15,10 @@ const auth = async (request, response) => {
             user.name = name;
             await user.save();
         }
+        const token = jwt.sign({sub: {email, picture, name}}, process.env.JWT_SECRET, {expiresIn: "7d"})
         return response.status(200).send({
-            message: "Login successful"
+            message: "Login successful",
+            token
         })
     } catch (err) {
         return response.status(500).send({

@@ -1,8 +1,9 @@
 import { JSDOM } from "jsdom"
-import puppeteer, { executablePath } from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { DirectoryModel } from "../Models/directory.model.mjs";
 import { SearchModel } from "../Models/search.model.mjs";
+import { openBrowser } from "../Lib/browser.mjs";
+import keyword_extractor from "keyword-extractor"
+import { escapeRegExp } from "../Lib/url.mjs";
 
 const getUrlComponents = async (request, response) => {
     try {
@@ -12,23 +13,14 @@ const getUrlComponents = async (request, response) => {
                 message: "Please enter a valid url"
             })
         }
+        let descriptionText;
         const getHtmlWithPuppeteer = async (url) => {
-            let browser;
-            if(process.env.NODE_ENV === "PROD") {
-                browser = await puppeteer.launch({
-                    args: chromium.args,
-                    defaultViewport: chromium.defaultViewport,
-                    executablePath: await chromium.executablePath(),
-                    headless: chromium.headless,
-                    ignoreHTTPSErrors: true
-                })
-            }
-            if(process.env.NODE_ENV === "DEV") {
-                browser = await puppeteer.launch({ headless: "new", executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });
-            }
-            const page = await browser.newPage();
-            await page.goto(url, { waitUntil: "domcontentloaded" });
+            const { browser, page } = await openBrowser();
+            await page.goto(url, { waitUntil: "networkidle2" });
             const html = await page.content();
+            descriptionText = await page.evaluate(() => {
+                return document.body.innerText;
+            });
             await browser.close();
             return html;
         };
@@ -36,8 +28,8 @@ const getUrlComponents = async (request, response) => {
         const dom = new JSDOM(html);
         const doc = dom.window.document;
     
-        const title = doc.querySelector('title')?.textContent || 'website';
-        let description = doc.querySelector('meta[name="description"]')?.content || doc.querySelector("p")?.innerText || doc.querySelector("div")?.innerText || "There is no description for this website.";
+        const title = doc.querySelector("title")?.textContent || url;
+        let description = doc.querySelector('meta[name="description"]')?.content || descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "There is no description for this website.";
         const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
         const icons = Array.from(doc.querySelectorAll('link[rel*="icon"]')).map((link) => new URL(link.getAttribute('href'), url).href);
     
@@ -48,9 +40,8 @@ const getUrlComponents = async (request, response) => {
             icon: icons?.[0] || `${process.env.SERVER}/assets/favicon.png`
         })
     } catch (error) {
-        console.log(error);
         return response.status(500).send({
-            message: "Error while fetching website. Please try again."
+            message: error.message || "Error while fetching website. Please try again."
         })   
     }
 }
@@ -89,32 +80,27 @@ const getSearch = async (request, response) => {
             })
         }
         const skip = (page - 1) * limit
-        const keywords = q.split(" ");
-        const titleSearch = [...keywords].map(item => ({ title: { $regex: item, $options: "i" } }))
-        const descriptionSearch = [...keywords].map(item => ({ description: { $regex: item, $options: "i" } }))
-        const hostNameSearch = [...keywords].map(item => ({ host_name: { $regex: item, $options: "i" } }))
-        const originSearch = [...keywords].map(item => ({ origin: { $regex: item, $options: "i" } }))
-        const urlSearch = [...keywords].map(item => ({ url: { $regex: item, $options: "i" } }))
-        
+        const keywords = keyword_extractor.extract(q, {
+            remove_digits: true,
+            remove_duplicates: true
+        })
+        const titleCheck = keywords.map(keyword => ({ title: { $regex: escapeRegExp(keyword), $options: "i" } }))
+
         const searchQuery = {
             $or: [
                 { keywords: { $in: keywords } },
-                { keywords: { $elemMatch: {$regex: q, $options: "i"} } },
-                { title: { $regex: q, $options: "i" } },
-                { description: { $regex: q, $options: "i" } },
-                { host_name: { $regex: q, $options: "i" } },
-                { origin: { $regex: q, $options: "i" } },
-                { url: { $regex: q, $options: "i" } },
-                ...titleSearch,
-                ...descriptionSearch,
-                ...hostNameSearch,
-                ...originSearch,
-                ...urlSearch
+                { keywords: { $elemMatch: {$regex: escapeRegExp(q), $options: "i"} } },
+                { title: { $regex: escapeRegExp(q), $options: "i" } },
+                { description: { $regex: escapeRegExp(q), $options: "i" } },
+                { host_name: { $regex: escapeRegExp(q), $options: "i" } },
+                { origin: { $regex: escapeRegExp(q), $options: "i" } },
+                { url: { $regex: escapeRegExp(q), $options: "i" } },
+                ...titleCheck
             ]
         }
         const results = await DirectoryModel.find(searchQuery).skip(skip).limit(limit)
         if (results.length > 0) {
-            const exist = await SearchModel.findOne({ query: { $regex: q, $options: "i" } })
+            const exist = await SearchModel.findOne({ query: { $regex: escapeRegExp(q), $options: "i" } })
             if (!exist) {
                 await SearchModel.create({ query: q })
             }
@@ -134,7 +120,7 @@ const searchSuggestions = async (request, response) => {
         if(!q){
             return response.status(200).send([])
         }
-        const results = await SearchModel.find({ query: { $regex: q, $options: "i" } }).sort({ createdAt: -1 }).limit(10)
+        const results = await SearchModel.find({ query: { $regex: escapeRegExp(q), $options: "i" } }).sort({ createdAt: -1 }).limit(10)
         return response.status(200).send(results)
     } catch (err) {
         return response.status(500).send({

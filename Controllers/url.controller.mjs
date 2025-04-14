@@ -23,7 +23,7 @@ const getUrlComponents = async (request, response) => {
         const owl = doc.querySelector('meta[name="owl-directory"]')?.content || "";
         const title = doc.querySelector("title")?.textContent || url;
         const metaDesc = doc.querySelector('meta[name="description"]')?.content
-        let description = metaDesc ? metaDesc.slice(0,150) + `${metaDesc.endsWith("...") ? "" : "..."}` : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "...";
+        let description = metaDesc ? metaDesc.slice(0,150) + `${metaDesc.endsWith("...") ? "" : "..."}` : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "No information is available for this page.";
         const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
         const icons = Array.from(doc.querySelectorAll('link[rel*="icon"]')).map((link) => new URL(link.getAttribute('href'), url).href);
         return response.status(200).send({

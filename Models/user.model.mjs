@@ -13,6 +13,9 @@ const schema = new Schema({
     picture: {
         type: String,
         required: true
+    },
+    meta_code: {
+        type: String
     }
 }, {
     timestamps: true

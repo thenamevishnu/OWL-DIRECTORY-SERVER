@@ -7,18 +7,24 @@ const auth = async (request, response) => {
         if (!email) throw new Error("Please enter a valid email");
         if (!name) throw new Error("Please enter a valid name");
         if (!picture) throw new Error("Please enter a valid picture");
-        const user = await UserModel.findOne({ email });
+        let user = await UserModel.findOne({ email });
         if (!user) {
-            await UserModel.create({ email, picture, name });
+            user = await UserModel.create({ email, picture, name });
         } else {
             user.picture = picture;
             user.name = name;
             await user.save();
         }
-        const token = jwt.sign({sub: {email, picture, name}}, process.env.JWT_SECRET, {expiresIn: "7d"})
+        if (!user?.meta_code) {
+            const meta_code = `${crypto.randomUUID().replace(/-/g, '')}${user._id}`;
+            user.meta_code = meta_code;
+            await user.save();
+        }
+        const token = jwt.sign({sub: {email, picture, name, meta_code: user.meta_code}}, process.env.JWT_SECRET, {expiresIn: "7d"})
         return response.status(200).send({
             message: "Login successful",
-            token
+            token,
+            meta_code: user.meta_code
         })
     } catch (err) {
         return response.status(500).send({

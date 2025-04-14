@@ -19,7 +19,6 @@ export const openBrowser = async () => {
     const page = await browser.newPage();
     return { browser, page };
     } catch (err) {
-        console.log(err);
         return null
     }
 }

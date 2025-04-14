@@ -28,6 +28,7 @@ const getUrlComponents = async (request, response) => {
         const dom = new JSDOM(html);
         const doc = dom.window.document;
     
+        const owl = doc.querySelector('meta[name="owl-directory"]')?.content || "";
         const title = doc.querySelector("title")?.textContent || url;
         let description = doc.querySelector('meta[name="description"]')?.content || descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "There is no description for this website.";
         const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
@@ -37,6 +38,7 @@ const getUrlComponents = async (request, response) => {
             title,
             description,
             keywords,
+            owl,
             icon: icons?.[0] || `${process.env.SERVER}/assets/favicon.png`
         })
     } catch (error) {

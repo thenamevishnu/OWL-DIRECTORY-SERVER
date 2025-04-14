@@ -22,7 +22,8 @@ const getUrlComponents = async (request, response) => {
         descriptionText = doc.getElementsByTagName("p")?.[0]?.textContent;
         const owl = doc.querySelector('meta[name="owl-directory"]')?.content || "";
         const title = doc.querySelector("title")?.textContent || url;
-        let description = doc.querySelector('meta[name="description"]')?.content ? doc.querySelector('meta[name="description"]')?.content : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "...";
+        const metaDesc = doc.querySelector('meta[name="description"]')?.content
+        let description = metaDesc ? metaDesc.slice(0,150) + `${metaDesc.endsWith("...") ? "" : "..."}` : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "...";
         const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
         const icons = Array.from(doc.querySelectorAll('link[rel*="icon"]')).map((link) => new URL(link.getAttribute('href'), url).href);
         return response.status(200).send({

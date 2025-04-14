@@ -1,23 +1,13 @@
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer";
 
 export const openBrowser = async () => {
     try {
-        let browser;
-    if(process.env.NODE_ENV === "PROD") {
-        browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath(),
-            headless: chromium.headless,
-            ignoreHTTPSErrors: true
-        })
-    }
-    if(process.env.NODE_ENV === "DEV") {
-        browser = await puppeteer.launch({ headless: "new", executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" });
-    }
-    const page = await browser.newPage();
-    return { browser, page };
+        const browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+         }); 
+        const page = await browser.newPage();
+        return { browser, page };
     } catch (err) {
         return null
     }

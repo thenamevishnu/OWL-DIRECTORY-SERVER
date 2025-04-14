@@ -12,6 +12,8 @@ app.use(cors())
 app.use(e.json())
 app.use("/assets", e.static("assets"))
 
+app.get("/api/v1", (req, res) => res.send("Hello World!"))
+
 app.use("/v1/url", urlRoute)
 app.use("/v1/auth", authRoute)
 

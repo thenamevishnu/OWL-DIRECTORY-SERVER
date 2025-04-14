@@ -1,9 +1,10 @@
 import { JSDOM } from "jsdom"
 import { DirectoryModel } from "../Models/directory.model.mjs";
 import { SearchModel } from "../Models/search.model.mjs";
-import { openBrowser } from "../Lib/browser.mjs";
 import keyword_extractor from "keyword-extractor"
 import { escapeRegExp } from "../Lib/url.mjs";
+import axios from "axios";
+import { getHtmlFromUrl } from "../Lib/fetch.mjs";
 
 const getUrlComponents = async (request, response) => {
     try {
@@ -14,26 +15,16 @@ const getUrlComponents = async (request, response) => {
             })
         }
         let descriptionText;
-        const getHtmlWithPuppeteer = async (url) => {
-            const { browser, page } = await openBrowser();
-            await page.goto(url, { waitUntil: "networkidle2" });
-            const html = await page.content();
-            descriptionText = await page.evaluate(() => {
-                return document.body.innerText;
-            });
-            await browser.close();
-            return html;
-        };
-        const html = await getHtmlWithPuppeteer(url);
+        const html = await getHtmlFromUrl(url);
         const dom = new JSDOM(html);
         const doc = dom.window.document;
     
+        descriptionText = doc.getElementsByTagName("p")?.[0]?.textContent;
         const owl = doc.querySelector('meta[name="owl-directory"]')?.content || "";
         const title = doc.querySelector("title")?.textContent || url;
-        let description = doc.querySelector('meta[name="description"]')?.content || descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "There is no description for this website.";
+        let description = doc.querySelector('meta[name="description"]')?.content ? doc.querySelector('meta[name="description"]')?.content : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "...";
         const keywords = doc.querySelector('meta[name="keywords"]')?.content || "";
         const icons = Array.from(doc.querySelectorAll('link[rel*="icon"]')).map((link) => new URL(link.getAttribute('href'), url).href);
-    
         return response.status(200).send({
             title,
             description,
@@ -42,6 +33,7 @@ const getUrlComponents = async (request, response) => {
             icon: icons?.[0] || `${process.env.SERVER}/assets/favicon.png`
         })
     } catch (error) {
+        
         return response.status(500).send({
             message: error.message || "Error while fetching website. Please try again."
         })   

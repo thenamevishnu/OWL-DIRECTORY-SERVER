@@ -9,4 +9,6 @@ urlRoute.post("/add", Authorization, urlController.addToDirectory)
 urlRoute.get("/search", urlController.getSearch)
 urlRoute.get("/suggestions", urlController.searchSuggestions)
 
+urlRoute.post("/ai", urlController.getAiResponse)
+
 export default urlRoute

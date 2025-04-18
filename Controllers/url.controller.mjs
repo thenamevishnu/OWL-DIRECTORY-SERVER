@@ -5,6 +5,7 @@ import keyword_extractor from "keyword-extractor"
 import { escapeRegExp } from "../Lib/url.mjs";
 import axios from "axios";
 import { getHtmlFromUrl } from "../Lib/fetch.mjs";
+import { ai } from "../Lib/ai.mjs";
 
 const getUrlComponents = async (request, response) => {
     try {
@@ -124,9 +125,27 @@ const searchSuggestions = async (request, response) => {
     }
 }
 
+const getAiResponse = async (request, response) => {
+    try {
+        const { message } = request.body;
+        if(!message) {
+            return response.status(400).send({
+                message: "Please enter a valid message"
+            })
+        }
+        const res = await ai.ask(message)
+        return response.status(200).send(res)
+    } catch (err) {
+        return response.status(500).send({
+            message: err.message || "Error happend (ai). Please try again."
+        })
+    }
+}
+
 export default {
     getUrlComponents,
     addToDirectory,
     getSearch,
-    searchSuggestions
+    searchSuggestions,
+    getAiResponse
 }

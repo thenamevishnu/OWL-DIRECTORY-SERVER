@@ -7,7 +7,6 @@ const urlRoute = Router()
 urlRoute.get("/fetch", Authorization, urlController.getUrlComponents)
 urlRoute.post("/add", Authorization, urlController.addToDirectory)
 urlRoute.get("/search", urlController.getSearch)
-urlRoute.get("/suggestions", urlController.searchSuggestions)
 
 urlRoute.post("/ai", urlController.getAiResponse)
 

@@ -1,9 +1,7 @@
 import { JSDOM } from "jsdom"
 import { DirectoryModel } from "../Models/directory.model.mjs";
-import { SearchModel } from "../Models/search.model.mjs";
 import keyword_extractor from "keyword-extractor"
 import { escapeRegExp } from "../Lib/url.mjs";
-import axios from "axios";
 import { getHtmlFromUrl } from "../Lib/fetch.mjs";
 import { ai } from "../Lib/ai.mjs";
 
@@ -95,29 +93,8 @@ const getSearch = async (request, response) => {
             ]
         }
         const results = await DirectoryModel.find(searchQuery).skip(skip).limit(limit)
-        if (results.length > 0) {
-            const exist = await SearchModel.findOne({ query: { $regex: escapeRegExp(q), $options: "i" } })
-            if (!exist) {
-                await SearchModel.create({ query: q })
-            }
-        }
         const total = await DirectoryModel.countDocuments(searchQuery)
         return response.status(200).send({results, total_results: total, is_previous_available: skip > 0, is_next_available: total > (skip + limit)})
-    } catch (err) {
-        return response.status(500).send({
-            message: err.message || "Error while fetching website. Please try again."
-        })
-    }
-}
-
-const searchSuggestions = async (request, response) => {
-    try {
-        const { q } = request.query;
-        if(!q){
-            return response.status(200).send([])
-        }
-        const results = await SearchModel.find({ query: { $regex: escapeRegExp(q), $options: "i" } }).sort({ createdAt: -1 }).limit(10)
-        return response.status(200).send(results)
     } catch (err) {
         return response.status(500).send({
             message: err.message || "Error while fetching website. Please try again."
@@ -146,6 +123,5 @@ export default {
     getUrlComponents,
     addToDirectory,
     getSearch,
-    searchSuggestions,
     getAiResponse
 }

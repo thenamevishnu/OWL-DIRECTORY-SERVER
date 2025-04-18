@@ -7,8 +7,7 @@ export const ai = {
             const response = await ai.models.generateContent({
                 model: "gemini-2.0-flash",
                 contents: message,
-                language: "en",
-                stopSequences: ["\n\n"],
+                language: "en"
             })
             return response
         } catch (_error) {

@@ -20,7 +20,7 @@ const auth = async (request, response) => {
             user.meta_code = meta_code;
             await user.save();
         }
-        const token = jwt.sign({sub: {email, picture, name, meta_code: user.meta_code}}, process.env.JWT_SECRET, {expiresIn: "7d"})
+        const token = jwt.sign({sub: {email, picture, name, meta_code: user.meta_code}, role: process.env.ADMIN_EMAIL == email ? "admin" : "user"}, process.env.JWT_SECRET, {expiresIn: "7d"})
         return response.status(200).send({
             message: "Login successful",
             token,

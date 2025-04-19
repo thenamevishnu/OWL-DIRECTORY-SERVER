@@ -1,8 +1,9 @@
 import e from "express";
 import cors from "cors"
-import urlRoute from "./Routes/url.route.mjs";
 import { db } from "./Config/db.config.mjs";
 import authRoute from "./Routes/auth.route.mjs";
+import websiteRoute from "./Routes/website.controller.mjs";
+import adminRoute from "./Routes/admin.route.mjs";
 
 const app = e()
 
@@ -14,8 +15,9 @@ app.use("/assets", e.static("assets"))
 
 app.get("/api/v1", (req, res) => res.send("Hello World!"))
 
-app.use("/v1/url", urlRoute)
 app.use("/v1/auth", authRoute)
+app.use("/v1/website", websiteRoute)
+app.use("/v1/admin", adminRoute)
 
 app.listen(process.env.PORT || 8081, () => {
     console.log(`Server running on port ${process.env.PORT || 8081}`);

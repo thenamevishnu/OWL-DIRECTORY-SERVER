@@ -4,6 +4,55 @@ import keyword_extractor from "keyword-extractor"
 import { escapeRegExp } from "../Lib/url.mjs";
 import { getHtmlFromUrl } from "../Lib/fetch.mjs";
 import { ai } from "../Lib/ai.mjs";
+import { QueryModel } from "../Models/search.model.mjs";
+
+const getMyWebsites = async (request, response) => {
+    try {
+        const { user } = request.query;
+        if (!user) return response.status(400).send({
+            message: "Please enter a valid user id"
+        })
+        const websites = await DirectoryModel.find({
+            added: user,
+            deleted: {
+                $ne: true 
+            }
+        })
+        if (!websites) throw new Error("Error while fetching websites. Please try again.")
+        return response.status(200).send({
+            websites
+        })
+    } catch (err) {
+        return response.status(500).send({
+            message: err.message || "Error while fetching websites. Please try again."
+        })
+    }
+}
+
+const deleteMyWebsite = async (request, response) => {
+    try {
+        const { id } = request.params;
+        if (!id) return response.status(400).send({
+            message: "Please enter a valid website id"    
+        })
+        const website = await DirectoryModel.findOneAndUpdate({
+            _id: id,
+            deleted: {
+                $ne: true 
+            }
+        }, { $set: { deleted: true } })
+        if (!website) return response.status(400).send({
+            message: "Website not found"
+        })
+        return response.status(200).send({
+            message: "Website deleted successfully"
+        })
+    } catch (err) {
+        return response.status(500).send({
+            message: err.message || "Error while deleting website. Please try again."    
+        })
+    }
+}
 
 const getUrlComponents = async (request, response) => {
     try {
@@ -90,8 +139,12 @@ const getSearch = async (request, response) => {
                 { origin: { $regex: escapeRegExp(q), $options: "i" } },
                 { url: { $regex: escapeRegExp(q), $options: "i" } },
                 ...titleCheck
-            ]
+            ],
+            deleted: {
+                $ne: true 
+            }
         }
+        await QueryModel.create({ query: q })
         const results = await DirectoryModel.find(searchQuery).skip(skip).limit(limit)
         const total = await DirectoryModel.countDocuments(searchQuery)
         return response.status(200).send({results, total_results: total, is_previous_available: skip > 0, is_next_available: total > (skip + limit)})
@@ -120,6 +173,8 @@ const getAiResponse = async (request, response) => {
 }
 
 export default {
+    getMyWebsites,
+    deleteMyWebsite,
     getUrlComponents,
     addToDirectory,
     getSearch,

@@ -10,6 +10,14 @@ const schema = new Schema({
     origin: {
         type: String
     },
+    deleted: {
+        type: Boolean,
+        default: false
+    },
+    blocked: {
+        type: Boolean,
+        default: false  
+    },
     url: {
         type: String,
         required: true,

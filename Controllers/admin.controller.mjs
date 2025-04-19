@@ -18,10 +18,10 @@ const getStat = async (request, response) => {
         const resObj = {
             total_users: users,
             total_searches: searches,
-            total_websites: wesites?.[0].total || 0,
-            deleted_websites: wesites?.[0].deleted || 0,
-            live_websites: wesites?.[0].live || 0,
-            blocked_websites: wesites?.[0].blocked || 0
+            total_websites: wesites?.[0]?.total || 0,
+            deleted_websites: wesites?.[0]?.deleted || 0,
+            live_websites: wesites?.[0]?.live || 0,
+            blocked_websites: wesites?.[0]?.blocked || 0
         }
         return response.status(200).send({
             message: "Stat fetched successfully",

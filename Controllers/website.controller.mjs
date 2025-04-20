@@ -68,7 +68,7 @@ const getUrlComponents = async (request, response) => {
         const doc = dom.window.document;
     
         descriptionText = doc.getElementsByTagName("p")?.[0]?.textContent;
-        const owl = doc.querySelector('meta[name="owl-directory"]')?.content || "";
+        const owl = doc.querySelector('meta[name="netfolio"]')?.content || "";
         const title = doc.querySelector("title")?.textContent || url;
         const metaDesc = doc.querySelector('meta[name="description"]')?.content
         let description = metaDesc ? metaDesc.slice(0,150) + `${metaDesc.endsWith("...") ? "" : "..."}` : descriptionText ? descriptionText?.replace(/(\s\s+)/g, " ")?.slice(0,150) + "..." : "No information is available for this page.";
